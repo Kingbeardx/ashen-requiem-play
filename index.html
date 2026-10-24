@@ -4,10 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="theme-color" content="#10131a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Ashen Requiem</title>
   <style>
     * { box-sizing: border-box; }
-    html, body { margin: 0; width: 100%; height: 100%; background: #080b10; color: #e1d8c6; overflow: hidden; touch-action: none; }
+    html, body { margin: 0; width: 100%; height: 100%; height: 100dvh; background: #080b10; color: #e1d8c6; overflow: hidden; touch-action: none; }
     body { font: 16px system-ui, sans-serif; }
     #canvas { display: block; width: 100%; height: 100%; outline: none; }
     .overlay { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); background: radial-gradient(ellipse at top, #273342, #080b10 80%); }
@@ -17,6 +19,9 @@
     progress { width: min(420px, 80vw); margin: 18px; accent-color: #b79a62; }
     small { max-width: 540px; color: #acb1bc; line-height: 1.5; }
     #rotate { display: none; z-index: 3; }
+    #tools { position: fixed; z-index: 4; bottom: max(6px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+    #tools button { margin: 0; min-width: 0; min-height: 44px; padding: 8px 14px; font: 14px system-ui, sans-serif; background: #10151be8; }
+    #tools span { display: none; }
     [hidden] { display: none !important; }
     @media (orientation: portrait) { #rotate { display: flex; } }
   </style>
@@ -35,16 +40,63 @@
     <small>Your saves stay in this browser on this device. Clearing website data removes them.</small>
   </div>
   <div id="rotate" class="overlay"><h1>ASHEN REQUIEM</h1><p>Turn your phone sideways to play.</p></div>
+  <div id="tools" hidden><button id="sound" type="button">ENABLE SOUND</button><button id="fullscreen" type="button">FULLSCREEN</button></div>
   <noscript>Enable JavaScript to play.</noscript>
+  <script>
+    // Retain the engine-created AudioContexts so a real browser gesture can
+    // resume them after download, tab suspension, or a Safari audio interruption.
+    window.AshenBrowser = { audioContexts: [], enableMix: null, ready: false };
+    const NativeAudioContext = window.AudioContext || window.webkitAudioContext;
+    if (NativeAudioContext) {
+      const TrackedAudioContext = new Proxy(NativeAudioContext, {
+        construct(target, args) {
+          const context = Reflect.construct(target, args);
+          AshenBrowser.audioContexts.push(context);
+          return context;
+        }
+      });
+      window.AudioContext = TrackedAudioContext;
+      if (window.webkitAudioContext) window.webkitAudioContext = TrackedAudioContext;
+    }
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) {}
+    function resumeAudio() {
+      for (const context of AshenBrowser.audioContexts) {
+        if (context.state === 'suspended' || context.state === 'interrupted') context.resume().catch(console.warn);
+      }
+    }
+    function fullscreen() {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }
+    document.addEventListener('pointerdown', resumeAudio, { capture: true });
+    document.addEventListener('touchstart', resumeAudio, { capture: true, passive: true });
+    document.getElementById('sound').addEventListener('click', () => {
+      resumeAudio();
+      if (AshenBrowser.enableMix) AshenBrowser.enableMix();
+      document.getElementById('sound').textContent = 'SOUND ENABLED';
+    });
+    document.getElementById('fullscreen').addEventListener('click', fullscreen);
+    if (!document.documentElement.requestFullscreen) document.getElementById('fullscreen').hidden = true;
+  </script>
   <script src="index.js"></script>
   <script>
-    const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":57019672,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+    const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":57022856,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
     const engine = new Engine(GODOT_CONFIG);
     const launch = document.getElementById('launch');
     const play = document.getElementById('play');
     const message = document.getElementById('message');
     const progress = document.getElementById('progress');
+    function enterGame() {
+      resumeAudio();
+      fullscreen();
+      launch.hidden = true;
+      document.getElementById('tools').hidden = false;
+      document.getElementById('canvas').focus();
+    }
     play.addEventListener('click', async () => {
+      if (AshenBrowser.ready) { enterGame(); return; }
+      fullscreen();
       play.disabled = true;
       const missing = Engine.getMissingFeatures({ threads: false });
       if (missing.length) {
@@ -71,8 +123,16 @@
             message.textContent = 'The game has closed. Reload the page to play again.';
           },
         });
-        launch.hidden = true;
-        document.getElementById('canvas').focus();
+        AshenBrowser.ready = true;
+        if (AshenBrowser.audioContexts.some(c => c.state !== 'running')) {
+          progress.hidden = true;
+          message.textContent = 'Ready. Tap to enter with sound.';
+          play.textContent = 'ENTER GAME';
+          play.hidden = false;
+          play.disabled = false;
+        } else {
+          enterGame();
+        }
       } catch (error) {
         console.error(error);
         progress.hidden = true;
