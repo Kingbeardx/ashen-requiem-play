@@ -1,0 +1,3 @@
+Knight voice completion:
+Falling scream: sound/player/marine/player/falling.ogg, Team Xonotic, GPL-3.0-or-later, source revision e138d021b9fc9d7a1703011eb85661ad00d49f34. Original recording bytes preserved. See LICENSE-XONOTIC-* and FALLING-AUDIO-SOURCE.zip for source, license and reproduction instructions.
+Dialogue: original synthetic "Where... am I?", locally generated with Kokoro 82M v1.0, stock am_michael preset with slow phrase delivery and an aligned thinking pause. Model Apache 2.0; inference SDK MIT. Models/tools are not shipped with the game.

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#10131a">
+  <title>Ashen Requiem</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; background: #080b10; color: #e1d8c6; overflow: hidden; touch-action: none; }
+    body { font: 16px system-ui, sans-serif; }
+    #canvas { display: block; width: 100%; height: 100%; outline: none; }
+    .overlay { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); background: radial-gradient(ellipse at top, #273342, #080b10 80%); }
+    h1 { font: 32px Georgia, serif; letter-spacing: .15em; color: #d3bc87; margin: 0 0 20px; }
+    p { max-width: 520px; line-height: 1.5; margin: 8px 0; }
+    button { min-height: 56px; min-width: 220px; padding: 12px 28px; margin: 18px 0; border: 1px solid #b09660; border-radius: 3px; background: #1c2027; color: #ecdfc1; font: 20px Georgia, serif; touch-action: manipulation; }
+    progress { width: min(420px, 80vw); margin: 18px; accent-color: #b79a62; }
+    small { max-width: 540px; color: #acb1bc; line-height: 1.5; }
+    #rotate { display: none; z-index: 3; }
+    [hidden] { display: none !important; }
+    @media (orientation: portrait) { #rotate { display: flex; } }
+  </style>
+  <link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+
+</head>
+<body>
+  <canvas id="canvas" tabindex="0">This game requires a browser with WebGL 2 support.</canvas>
+  <div id="launch" class="overlay">
+    <h1>ASHEN REQUIEM</h1>
+    <p id="message">A journey beneath the watching heavens.</p>
+    <button id="play" type="button">PLAY</button>
+    <progress id="progress" hidden></progress>
+    <small id="hint">Keep your phone sideways. For iPhone, open in Safari and turn up media volume. The first download may take a moment.</small>
+    <small>Your saves stay in this browser on this device. Clearing website data removes them.</small>
+  </div>
+  <div id="rotate" class="overlay"><h1>ASHEN REQUIEM</h1><p>Turn your phone sideways to play.</p></div>
+  <noscript>Enable JavaScript to play.</noscript>
+  <script src="index.js"></script>
+  <script>
+    const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":57019672,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+    const engine = new Engine(GODOT_CONFIG);
+    const launch = document.getElementById('launch');
+    const play = document.getElementById('play');
+    const message = document.getElementById('message');
+    const progress = document.getElementById('progress');
+    play.addEventListener('click', async () => {
+      play.disabled = true;
+      const missing = Engine.getMissingFeatures({ threads: false });
+      if (missing.length) {
+        message.textContent = 'This browser cannot run the game: ' + missing.join(', ') + '. Try an updated Safari or Chrome.';
+        return;
+      }
+      play.hidden = true;
+      progress.hidden = false;
+      message.textContent = 'Downloading Ashen Requiem…';
+      try {
+        // A user gesture starts the engine. Subsequent menu taps also unlock audio
+        // on Safari versions that suspend AudioContext during an async download.
+        await engine.startGame({
+          onProgress: (current, total) => {
+            if (total > 0) {
+              progress.max = total;
+              progress.value = current;
+              message.textContent = 'Loading… ' + Math.round(current / total * 100) + '%';
+            }
+          },
+          onExit: () => {
+            launch.hidden = false;
+            progress.hidden = true;
+            message.textContent = 'The game has closed. Reload the page to play again.';
+          },
+        });
+        launch.hidden = true;
+        document.getElementById('canvas').focus();
+      } catch (error) {
+        console.error(error);
+        progress.hidden = true;
+        message.textContent = 'The game could not start. Reload in Safari with enough free memory. ' + String(error.message || error);
+      }
+    });
+  </script>
+</body>
+</html>
+

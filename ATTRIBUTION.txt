@@ -1,0 +1,10 @@
+Audio from 0 A.D., Copyright Wildfire Games. https://www.wildfiregames.com/
+Music: Honor Bound, from the 0 A.D. soundtrack.
+Source revision: 61a3b9507d974084e6badb88a0826bd89a6d5b8b
+Source and modified audio licensed CC BY-SA 3.0: https://creativecommons.org/licenses/by-sa/3.0/
+Modifications by Ashen Requiem contributors: excerpting, filtering, fades, normalization and encoding.
+See source-lock.json and provenance.json for exact source files and transformations.
+
+Knight voice completion:
+Falling scream: sound/player/marine/player/falling.ogg, Team Xonotic, GPL-3.0-or-later, source revision e138d021b9fc9d7a1703011eb85661ad00d49f34. Original recording bytes preserved. See LICENSE-XONOTIC-* and FALLING-AUDIO-SOURCE.zip for source, license and reproduction instructions.
+Dialogue: original synthetic "Where... am I?", locally generated with Kokoro 82M v1.0, stock am_michael preset with slow phrase delivery and an aligned thinking pause. Model Apache 2.0; inference SDK MIT. Models/tools are not shipped with the game.
